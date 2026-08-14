@@ -1,8 +1,8 @@
 #include "munit.h"
 #include "string.h"
 
-#define UNUSED_TEST_ARGS                                                        \
-  (void)params;                                                                 \
+#define UNUSED_TEST_ARGS                                                       \
+  (void)params;                                                                \
   (void)data
 
 // ---------------------------------------------------------
@@ -354,6 +354,10 @@ static MunitResult test_public_helpers(const MunitParameter params[],
   free_string(&empty);
   return MUNIT_OK;
 }
+
+// ---------------------------------------------------------
+// Test for String Builder
+// ---------------------------------------------------------
 
 // ---------------------------------------------------------
 // Test Suite Setup

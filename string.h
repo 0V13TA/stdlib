@@ -54,6 +54,12 @@ typedef struct Array {
   size_t element_size;
 } Array;
 
+typedef struct StringBuilder {
+  char *string;
+  size_t _length;
+  size_t _capacity;
+} StringBuilder;
+
 /**
  * Replaces a String variable with a newly computed String and frees the old
  * value.
@@ -320,5 +326,14 @@ String cstring_replace_all(String str, const char *old_substr,
  * or allocation failure.
  */
 Array string_split(String str, String delimiter);
+
+StringBuilder sb_create(size_t capacity);
+void sb_free(StringBuilder *builder);
+
+uint8_t sb_append(StringBuilder *builder, String str);
+uint8_t cstring_sb_append(StringBuilder *builder, const char *str);
+uint8_t char_sb_append(StringBuilder *builder, const char c);
+
+String sb_build(StringBuilder *builder);
 
 #endif

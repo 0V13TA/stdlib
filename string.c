@@ -23,6 +23,9 @@
 
 #include "string.h"
 
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -473,4 +476,72 @@ Array string_split(String str, String delimiter) {
   }
 
   return result;
+}
+
+StringBuilder sb_create(size_t capacity) {
+  StringBuilder new_sb = {0};
+  new_sb.string = malloc(sizeof(char) * capacity);
+  if (!new_sb.string)
+    return new_sb;
+  new_sb._capacity = capacity;
+  new_sb._length = 0;
+  return new_sb;
+}
+
+void sb_free(StringBuilder *builder) {
+  if (builder) {
+    builder->_length = 0;
+    builder->_capacity = 0;
+    free(builder->string);
+  }
+}
+
+uint8_t sb_append(StringBuilder *builder, String str) {
+  size_t required_space = builder->_length + str._length;
+  if (required_space >= builder->_capacity) {
+    builder->_capacity *= 2;
+    builder->string = realloc(builder->string, builder->_capacity);
+    if (!builder->string)
+      return 0;
+  }
+
+  memcpy(builder->string + builder->_length, str.string, str._length);
+  builder->_length += str._length;
+  builder->string[builder->_length] = '\0';
+  return 1;
+}
+
+uint8_t cstring_sb_append(StringBuilder *builder, const char *str) {
+  String new_str = {0};
+  new_str.owns_data = 0;
+  new_str.string = (char *)str;
+  new_str._length = strlen(str);
+
+  return sb_append(builder, new_str);
+}
+
+uint8_t char_sb_append(StringBuilder *builder, const char c) {
+  size_t required_space = builder->_length + 1;
+  if (required_space >= builder->_capacity) {
+    builder->_capacity *= 2;
+    builder->string = realloc(builder->string, builder->_capacity);
+    if (!builder->string)
+      return 0;
+  }
+
+  builder->string[builder->_length] = c;
+  builder->_length += 1;
+  builder->string[builder->_length] = '\0';
+  return 1;
+}
+
+String sb_build(StringBuilder *builder) {
+  String new_str = {0};
+  if (builder) {
+    new_str.string = builder->string;
+    new_str.owns_data = 1;
+    new_str._length = builder->_length;
+    sb_free(builder);
+  }
+  return new_str;
 }
