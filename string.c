@@ -490,19 +490,25 @@ StringBuilder sb_create(size_t capacity) {
 
 void sb_free(StringBuilder *builder) {
   if (builder) {
+    free(builder->string);
+    builder->string = NULL;
     builder->_length = 0;
     builder->_capacity = 0;
-    free(builder->string);
   }
 }
 
 uint8_t sb_append(StringBuilder *builder, String str) {
-  size_t required_space = builder->_length + str._length;
-  if (required_space >= builder->_capacity) {
-    builder->_capacity *= 2;
-    builder->string = realloc(builder->string, builder->_capacity);
-    if (!builder->string)
+  size_t required_space = builder->_length + str._length + 1;
+  if (required_space > builder->_capacity) {
+    size_t new_capacity = builder->_capacity ? builder->_capacity : 16;
+    while (new_capacity < required_space)
+      new_capacity *= 2;
+
+    char *new_ptr = realloc(builder->string, new_capacity);
+    if (!new_ptr)
       return 0;
+    builder->string = new_ptr;
+    builder->_capacity = new_capacity;
   }
 
   memcpy(builder->string + builder->_length, str.string, str._length);
@@ -537,11 +543,14 @@ uint8_t char_sb_append(StringBuilder *builder, const char c) {
 
 String sb_build(StringBuilder *builder) {
   String new_str = {0};
-  if (builder) {
+  if (builder && builder->string) {
     new_str.string = builder->string;
     new_str.owns_data = 1;
     new_str._length = builder->_length;
-    sb_free(builder);
+
+    builder->string = NULL;
+    builder->_length = 0;
+    builder->_capacity = 0;
   }
   return new_str;
 }

@@ -356,8 +356,87 @@ static MunitResult test_public_helpers(const MunitParameter params[],
 }
 
 // ---------------------------------------------------------
-// Test for String Builder
+// Tests for String Builder
 // ---------------------------------------------------------
+static MunitResult test_string_builder_basic(const MunitParameter params[],
+                                             void *data) {
+  UNUSED_TEST_ARGS;
+
+  StringBuilder sb = sb_create(8);
+  munit_assert_ptr_not_null(sb.string);
+  munit_assert_size(sb._length, ==, 0);
+  munit_assert_size(sb._capacity, ==, 8);
+
+  // Append C-string
+  uint8_t ok1 = cstring_sb_append(&sb, "Hello");
+  munit_assert_uint8(ok1, ==, 1);
+  munit_assert_size(sb._length, ==, 5);
+  munit_assert_string_equal(sb.string, "Hello");
+
+  // Append single char
+  uint8_t ok2 = char_sb_append(&sb, ' ');
+  munit_assert_uint8(ok2, ==, 1);
+  munit_assert_size(sb._length, ==, 6);
+
+  // Append String struct
+  String s = string_create("World!");
+  uint8_t ok3 = sb_append(&sb, s);
+  munit_assert_uint8(ok3, ==, 1);
+  munit_assert_size(sb._length, ==, 12);
+  munit_assert_string_equal(sb.string, "Hello World!");
+
+  // Finalize with sb_build
+  String result = sb_build(&sb);
+  munit_assert_ptr_not_null(result.string);
+  munit_assert_string_equal(result.string, "Hello World!");
+  munit_assert_size(result._length, ==, 12);
+  munit_assert_uint8(result.owns_data, ==, 1);
+
+  // Builder should be reset
+  munit_assert_null(sb.string);
+  munit_assert_size(sb._length, ==, 0);
+
+  free_string(&s);
+  free_string(&result);
+  return MUNIT_OK;
+}
+
+static MunitResult test_string_builder_growth(const MunitParameter params[],
+                                              void *data) {
+  UNUSED_TEST_ARGS;
+
+  // Small initial capacity to force multiple reallocations
+  StringBuilder sb = sb_create(2);
+
+  // Append string larger than double the initial capacity
+  cstring_sb_append(&sb, "A quick brown fox ");
+  cstring_sb_append(&sb, "jumps over the lazy dog.");
+
+  String result = sb_build(&sb);
+  munit_assert_string_equal(result.string,
+                            "A quick brown fox jumps over the lazy dog.");
+  munit_assert_size(result._length, ==, 42);
+
+  free_string(&result);
+  return MUNIT_OK;
+}
+
+static MunitResult test_string_builder_free(const MunitParameter params[],
+                                            void *data) {
+  UNUSED_TEST_ARGS;
+
+  StringBuilder sb = sb_create(16);
+  cstring_sb_append(&sb, "temporary data");
+  munit_assert_size(sb._length, ==, 14);
+
+  // Direct cleanup without building
+  sb_free(&sb);
+  munit_assert_null(sb.string);
+  munit_assert_size(sb._length, ==, 0);
+  munit_assert_size(sb._capacity, ==, 0);
+
+  return MUNIT_OK;
+}
 
 // ---------------------------------------------------------
 // Test Suite Setup
@@ -390,7 +469,15 @@ static MunitTest test_suite_tests[] = {
     {(char *)"/edge/slice", test_slice_edge_cases, NULL, NULL,
      MUNIT_TEST_OPTION_NONE, NULL},
 
-    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}};
+    {(char *)"/string_builder/basic", test_string_builder_basic, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/string_builder/growth", test_string_builder_growth, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/string_builder/free", test_string_builder_free, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+};
 
 static const MunitSuite test_suite = {(char *)"/string_library",
                                       test_suite_tests, NULL, 1,

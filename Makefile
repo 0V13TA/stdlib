@@ -1,5 +1,5 @@
 CC := clang
-CFLAGS := -std=c99 -Wall -Wextra -pedantic
+CFLAGS := -std=c99 -Wall -Wextra -pedantic -g
 MUNIT_CFLAGS := $(CFLAGS) -Wno-c11-extensions
 BUILD_DIR := bin
 
