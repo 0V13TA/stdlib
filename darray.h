@@ -23,9 +23,10 @@
 #ifndef DARRAY_H
 #define DARRAY_H
 
-#include <cstdlib>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DARRAY_NPOS ((size_t)-1)
 

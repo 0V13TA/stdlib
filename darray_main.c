@@ -1,89 +1,151 @@
 #include "darray.h"
+#include "munit.h" // Ensure munit.h and munit.c are in your build path
 #include <stddef.h>
-#include <stdio.h>
 
 // --- Stateless Callbacks using ctx ---
 
-void my_fill_func(size_t index, void *out_value, void *ctx) {
+static void test_fill_func(size_t index, void *out_value, void *ctx) {
   int multiplier = *(int *)ctx;
   *(int *)out_value = (int)(index * multiplier);
 }
 
-void my_for_each_func(size_t index, void *value, void *ctx) {
-  const char *prefix = (const char *)ctx;
-  int val = *(int *)value;
-  printf("%s[%zu] = %d\n", prefix, index, val);
+static void test_for_each_sum_func(size_t index, void *value, void *ctx) {
+  int *sum = (int *)ctx;
+  *sum += *(int *)value; // Accumulate sum for assertion
 }
 
-void my_map_func(size_t index, const void *in_value, void *out_value, void *ctx) {
+static void test_map_func(size_t index, const void *in_value, void *out_value,
+                          void *ctx) {
   int multiplier = *(int *)ctx;
   int val = *(const int *)in_value;
   *(int *)out_value = val * multiplier;
 }
 
-// --- Main Testbed ---
+// --- Test Cases ---
 
-int main(void) {
-  // 1. Creation
-  DarrayResult darray_1_res = darray_create(30, sizeof(int));
-  if (darray_1_res.is_error) return 1;
-  Darray *darray_1 = darray_1_res.as.value;
+static MunitResult test_lifecycle(const MunitParameter params[], void *data) {
+  DarrayResult res = darray_create(30, sizeof(int), NULL);
+  munit_assert_false(res.is_error);
 
-  // 2. Filling with context
-  int val30 = 30;
+  Darray *arr = res.as.value;
+  munit_assert_not_null(arr);
+  munit_assert_size(darray_cap(arr), ==, 30);
+  munit_assert_size(darray_len(arr), ==, 0);
+  munit_assert_true(darray_empty(arr));
+
+  darray_free(&arr);
+  munit_assert_null(arr); // Free should nullify the double pointer
+
+  return MUNIT_OK;
+}
+
+static MunitResult test_additions_and_removals(const MunitParameter params[],
+                                               void *data) {
+  DarrayResult res = darray_create(5, sizeof(int), NULL);
+  Darray *arr = res.as.value;
+
+  // Test Append
+  int val1 = 10, val2 = 20, val3 = 30;
+  munit_assert_int(darray_append(&arr, &val1), ==, DARRAY_OK);
+  munit_assert_int(darray_append(&arr, &val2), ==, DARRAY_OK);
+  munit_assert_size(darray_len(arr), ==, 2);
+
+  // Test Prepend
+  munit_assert_int(darray_prepend(&arr, &val3), ==,
+                   DARRAY_OK); // Arr: [30, 10, 20]
+
+  ValueResult get_res = darray_get(arr, 0);
+  munit_assert_false(get_res.is_error);
+  munit_assert_int(*(int *)get_res.as.value, ==, 30);
+
+  // Test Pop (Out Parameter)
+  int popped = 0;
+  munit_assert_int(darray_pop(&arr, &popped), ==, DARRAY_OK);
+  munit_assert_int(popped, ==, 20);
+  munit_assert_size(darray_len(arr), ==, 2);
+
+  darray_free(&arr);
+  return MUNIT_OK;
+}
+
+static MunitResult test_iteration_and_mapping(const MunitParameter params[],
+                                              void *data) {
+  DarrayResult res = darray_create(10, sizeof(int), NULL);
+  Darray *arr = res.as.value;
+
+  // Setup array with [0, 2, 4, 6, 8]
   int fill_mult = 2;
-  darray_fill_value(darray_1, &val30, 0, darray_1->_length - 1);
-  darray_fill_func(darray_1, my_fill_func, &fill_mult, 0, 20);
+  for (int i = 0; i < 5; i++) {
+    darray_append(&arr, &i); // Dummy values just to advance length
+  }
+  darray_fill_func(arr, test_fill_func, &fill_mult, 0, 4);
 
-  // 3. Cloning
-  DarrayResult clone_res = darray_clone(darray_1, 0, darray_1->_length - 1);
-  Darray *darray_1_clone = clone_res.as.value;
+  // Test For Each (Summing)
+  int sum = 0;
+  darray_for_each(arr, test_for_each_sum_func, &sum);
+  munit_assert_int(sum, ==, 20); // 0 + 2 + 4 + 6 + 8
 
-  // 4. Structural Additions (Double Pointers)
-  int val20 = 20;
-  darray_set(darray_1_clone, 10, &val20); // Single ptr, no structural change
-  darray_append(&darray_1_clone, &val30); // Double ptr, might realloc
-  darray_prepend(&darray_1_clone, &val30);
-
-  // 5. Iteration & Mapping
-  char *prefix = "Array1";
+  // Test Map (Multiply by 10)
   int map_mult = 10;
-  darray_for_each(darray_1, my_for_each_func, prefix);
-  
-  DarrayResult double_darray_res = darray_map(darray_1, my_map_func, &map_mult);
-  Darray *double_darray_1 = double_darray_res.as.value;
+  DarrayResult map_res = darray_map(arr, test_map_func, &map_mult, NULL);
+  munit_assert_false(map_res.is_error);
 
-  // 6. Safe Removals (Out Parameters)
-  int popped_val;
-  if (darray_pop(&darray_1_clone, &popped_val) == DARRAY_OK) {
-    printf("Popped: %d\n", popped_val);
-  }
+  Darray *mapped_arr = map_res.as.value;
+  ValueResult get_res = darray_get(mapped_arr, 2);
+  munit_assert_int(*(int *)get_res.as.value, ==, 40); // 4 * 10
 
-  // Remove and discard value by passing NULL
-  darray_unordered_remove(&darray_1_clone, 5, NULL); 
-  darray_ordered_remove(&darray_1_clone, 5, NULL);
+  darray_free(&arr);
+  darray_free(&mapped_arr);
+  return MUNIT_OK;
+}
 
-  // 7. Slices & Concatenation
-  DarraySliceResult slice_res = darray_slice(darray_1, 0, 5);
-  if (!slice_res.is_error) {
-    DarraySlice slice = slice_res.as.value;
-    
-    // Test slice concatenation
-    DarrayResult concat_slice_res = darray_concat_slice(darray_1, &slice);
-    if (!concat_slice_res.is_error) {
-      darray_free(&concat_slice_res.as.value);
-    }
-  }
+static MunitResult test_slices(const MunitParameter params[], void *data) {
+  DarrayResult res = darray_create(10, sizeof(int), NULL);
+  Darray *arr = res.as.value;
 
-  // 8. Explicit Capacity Management
-  darray_grow(&double_darray_1, 35);
-  darray_shrink(&double_darray_1, 25);
-  darray_shrink_to_fit(&double_darray_1);
+  for (int i = 0; i < 10; i++)
+    darray_append(&arr, &i);
 
-  // 9. Freeing (Double pointers reset caller's pointer to NULL)
-  darray_free(&darray_1);
-  darray_free(&darray_1_clone);
-  darray_free(&double_darray_1);
+  // Slice elements 2 through 6 (inclusive start, exclusive end for traditional
+  // slicing, or inclusive as documented)
+  DarraySliceResult slice_res = darray_slice(arr, 2, 6);
+  munit_assert_false(slice_res.is_error);
 
-  return 0;
+  DarraySlice slice = slice_res.as.value;
+  munit_assert_size(slice._length, ==, 5); // 2, 3, 4, 5, 6
+
+  // Concat Slice to Array
+  DarrayResult concat_res = darray_concat_slice(arr, &slice, NULL);
+  munit_assert_false(concat_res.is_error);
+  munit_assert_size(darray_len(concat_res.as.value), ==, 15);
+
+  darray_free(&arr);
+  darray_free(&concat_res.as.value);
+  return MUNIT_OK;
+}
+
+// --- Munit Suite Registration ---
+
+static MunitTest test_suite_tests[] = {
+    {(char *)"/lifecycle", test_lifecycle, NULL, NULL, MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char *)"/additions_and_removals", test_additions_and_removals, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/iteration_and_mapping", test_iteration_and_mapping, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/slices", test_slices, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    // Add a NULL terminator struct to let munit know the array is done
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}};
+
+static const MunitSuite test_suite = {
+    (char *)"/darray",      // Prefix for all test names
+    test_suite_tests,       // Array of tests
+    NULL,                   // Array of suites (sub-suites)
+    1,                      // Iterations
+    MUNIT_SUITE_OPTION_NONE // Options
+};
+
+int main(int argc, char *argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
+  // Pass control to munit's test runner
+  return munit_suite_main(&test_suite, NULL, argc, argv);
 }
