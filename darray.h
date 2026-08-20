@@ -122,6 +122,13 @@ static inline int darray_empty(const Darray *arr) {
   return arr ? arr->_length == 0 : 1;
 }
 
+/**
+ * Helper to calculate the total byte size of a Darray including its FAM.
+ * Casts to size_t to guard against integer overflow on 32-bit architectures.
+ */
+#define DARRAY_CALC_SIZE(cap, el_size)                                         \
+  (sizeof(Darray) + (size_t)(cap) * (size_t)(el_size))
+
 /* ==========================================================================
  * LIFECYCLE (CREATION & DESTRUCTION)
  * ========================================================================== */
@@ -293,7 +300,8 @@ DarrayError darray_fill_func(Darray *arr,
 
 /**
  * Removes the last element and copies its data to out_value.
- * May trigger a shrink reallocation.
+ * WARNING: This may trigger an internal shrink reallocation, which will
+ * invalidate any pointers previously obtained via darray_get.
  * @param arr Darray** Target array double pointer.
  * @param out_value void* Pointer to destination memory. If NULL, the value is
  * discarded.
@@ -303,7 +311,9 @@ DarrayError darray_pop(Darray **arr, void *out_value);
 
 /**
  * Removes an element by swapping it with the last element and popping.
- * Fast O(1) removal that does not preserve array order. May trigger a shrink.
+ * Fast O(1) removal that does not preserve array order.
+ * WARNING: This may trigger an internal shrink reallocation, which will
+ * invalidate any pointers previously obtained via darray_get.
  * @param arr Darray** Target array double pointer.
  * @param index size_t Index to remove.
  * @param out_value void* Pointer to destination memory. If NULL, the value is
@@ -315,7 +325,9 @@ DarrayError darray_unordered_remove(Darray **arr, size_t index,
 
 /**
  * Removes an element and shifts all subsequent elements left.
- * O(n) removal that preserves array order. May trigger a shrink.
+ * O(n) removal that preserves array order.
+ * WARNING: This may trigger an internal shrink reallocation, which will
+ * invalidate any pointers previously obtained via darray_get.
  * @param arr Darray** Target array double pointer.
  * @param index size_t Index to remove.
  * @param out_value void* Pointer to destination memory. If NULL, the value is
