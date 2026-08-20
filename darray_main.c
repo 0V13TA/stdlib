@@ -1,52 +1,80 @@
+#include "darray.h"
+#include <stddef.h>
 #include <stdio.h>
 
-void* fill_darray_func(size_t index) {
-  return (void*)(index * 2);
+// Callbacks pass data via pointers for memory safety and type casting
+void my_fill_func(size_t index, void *out_value) {
+  *(int *)out_value = (int)(index * 2);
 }
 
-void for_each_element_func(size_t index, void* value) {
-  int val = (int) *value;
+void my_for_each_func(size_t index, void *value) {
+  int val = *(int *)value;
   printf("val = %d\n", val);
 }
 
-void* map_each_element_func(size_t index, void* value) {
-  int val = (int) *value;
-  return val*2;
+void my_map_func(size_t index, void *in_value, void *out_value) {
+  int val = *(int *)in_value;
+  *(int *)out_value = val * 2;
 }
 
-// TODO: There should be equivalent functions
-// for DarraySlice e.g concat_darray_slice
-// concat_slice_darray, concat_slice,
-// for_each_slice_elem, map_each_slice_elem etc
 int main(void) {
-  DarrayResult darray_1 = create_darray(30 * size_of(int));
-  fill_darray_value(darray_1, (void*)30, 0, darray_1._len-1);
-  fill_darray_func(darray_1, fill_darray_func, 0, 20);
-  DarrayResult darray_1_clone = from_darray(darray_1, 0, darray_1._len-1);
-  darray_set(darray_1_clone, 10, (void*)20);
-  darray_append(&darray_1_clone, (void*)30);
-  darray_prepend(&darray_1_clone, (void*)30);
-  DarraySliceResult darray_1_slice = slice_darray(darray_1, 0, 5);
+  // 1. Create returns a DarrayResult containing a Darray* pointer
+  DarrayResult darray_1_res = darray_create(30, sizeof(int));
+  // Do some error checking here...
+  Darray *darray_1 = darray_1_res.as.value;
 
-  for_each_darray_elem(darray_1, for_each_element_func);
-  DarrayResult double_darray_1 = map_each_darray_elem(darray_1, map_each_element_func);
-  ValueResult double_darray_1_value = darray_get(double_darray_1, 10);
+  int val30 = 30;
+
+  // 2. Non-structural mutations take Darray* (single pointer)
+  darray_fill_value(darray_1, &val30, 0, darray_1->_length - 1);
+  darray_fill_func(darray_1, my_fill_func, 0, 20);
+
+  // Cloning takes Darray* and returns a DarrayResult holding a new Darray*
+  DarrayResult clone_res = darray_clone(darray_1, 0, darray_1->_length - 1);
+  Darray *darray_1_clone = clone_res.as.value;
+
+  int val20 = 20;
+  darray_set(darray_1_clone, 10, &val20); // Takes Darray*
+
+  // 3. Structural mutations (might realloc) take Darray** (double pointer)
+  darray_append(&darray_1_clone, &val30);
+  darray_prepend(&darray_1_clone, &val30);
+
+  // 4. Read operations take Darray*
+  DarraySliceResult slice_res = darray_slice(darray_1, 0, 5);
+
+  darray_for_each(darray_1, my_for_each_func);
+
+  DarrayResult double_darray_res = darray_map(darray_1, my_map_func);
+  Darray *double_darray_1 = double_darray_res.as.value;
+
+  ValueResult get_res = darray_get(double_darray_1, 10);
   // Do some error checking here
 
-  ValueResult darray_1_clone_pop = darray_pop(darray_1_clone);
-  // Do some error checking here
-  ValueResult darray_1_clone_unordered_remove = darray_unordered_remove(darray_1_clone, 5); // Does swap and pop
-  // Do some error checking here
-  ValueResult darray_1_clone_ordered_remove = darray_ordered_remove(darray_1_clone, 5); // Does remove and shift
-  // Do some error checking here
+  // 5. Removals are structural and might trigger a shrink, so they take
+  // Darray**
+  ValueResult pop_res = darray_pop(&darray_1_clone);
+  ValueResult unordered_remove_res =
+      darray_unordered_remove(&darray_1_clone, 5); // Swap and pop
+  ValueResult ordered_remove_res =
+      darray_ordered_remove(&darray_1_clone, 5); // Remove and shift
 
+  // 6. Explicit capacity changes take Darray**
+  darray_grow(&double_darray_1, 35);
+  darray_shrink(&double_darray_1, 25);
+  darray_shrink_to_fit(&double_darray_1);
 
-  grow_darray(&double_darray_1, 35); // Modifies the capacity
-  shrink_darray(&double_darray_1, 25);
-  shrink_to_fit_darray(&double_darray_1); // Simple macro that calls shrink_darray with the width of the darray as the value.
+  // Concat takes two Darray* pointers
+  DarrayResult concat_res = darray_concat(darray_1_clone, darray_1);
 
-  DarrayResult concated = concat_darray(darray_1_clone, darray_1);
-  free_darray(darray_1);
-  free_darray(darray_1_clone);
+  // 7. Free takes Darray** to safely set the caller's pointer to NULL after
+  // freeing
+  darray_free(&darray_1);
+  darray_free(&darray_1_clone);
+  darray_free(&double_darray_1);
+  if (!concat_res.is_error) {
+    darray_free(&concat_res.as.value);
+  }
+
   return 0;
 }
