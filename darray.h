@@ -42,12 +42,16 @@ typedef enum {
 } DarrayError;
 
 // The Allocator interface
+#ifndef OVIETA_ALLOCATOR_DEFINED
+#define OVIETA_ALLOCATOR_DEFINED
 typedef struct Allocator {
   void *(*malloc)(size_t size, void *ctx);
   void *(*realloc)(void *ptr, size_t new_size, void *ctx);
   void (*free)(void *ptr, void *ctx);
-  void *ctx; // Pointer to the actual arena/memory pool instance
+  void *ctx;
 } Allocator;
+#endif
+
 
 // C99 Stretchy Buffer implementation
 typedef struct Darray {

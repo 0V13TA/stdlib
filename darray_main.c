@@ -2,6 +2,11 @@
 #include "munit.h" // Ensure munit.h and munit.c are in your build path
 #include <stddef.h>
 
+#define UNUSED_TEST_ARGS \
+  (void)params;          \
+  (void)data
+
+
 // --- Stateless Callbacks using ctx ---
 
 static void test_fill_func(size_t index, void *out_value, void *ctx) {
@@ -10,12 +15,14 @@ static void test_fill_func(size_t index, void *out_value, void *ctx) {
 }
 
 static void test_for_each_sum_func(size_t index, void *value, void *ctx) {
+  (void)index;
   int *sum = (int *)ctx;
   *sum += *(int *)value; // Accumulate sum for assertion
 }
 
 static void test_map_func(size_t index, const void *in_value, void *out_value,
                           void *ctx) {
+  (void)index;
   int multiplier = *(int *)ctx;
   int val = *(const int *)in_value;
   *(int *)out_value = val * multiplier;
@@ -24,6 +31,7 @@ static void test_map_func(size_t index, const void *in_value, void *out_value,
 // --- Test Cases ---
 
 static MunitResult test_lifecycle(const MunitParameter params[], void *data) {
+  UNUSED_TEST_ARGS;
   DarrayResult res = darray_create(30, sizeof(int), NULL);
   munit_assert_false(res.is_error);
 
@@ -41,6 +49,7 @@ static MunitResult test_lifecycle(const MunitParameter params[], void *data) {
 
 static MunitResult test_additions_and_removals(const MunitParameter params[],
                                                void *data) {
+  UNUSED_TEST_ARGS;
   DarrayResult res = darray_create(5, sizeof(int), NULL);
   Darray *arr = res.as.value;
 
@@ -70,6 +79,7 @@ static MunitResult test_additions_and_removals(const MunitParameter params[],
 
 static MunitResult test_iteration_and_mapping(const MunitParameter params[],
                                               void *data) {
+  UNUSED_TEST_ARGS;
   DarrayResult res = darray_create(10, sizeof(int), NULL);
   Darray *arr = res.as.value;
 
@@ -100,6 +110,7 @@ static MunitResult test_iteration_and_mapping(const MunitParameter params[],
 }
 
 static MunitResult test_slices(const MunitParameter params[], void *data) {
+  UNUSED_TEST_ARGS;
   DarrayResult res = darray_create(10, sizeof(int), NULL);
   Darray *arr = res.as.value;
 
