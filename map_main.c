@@ -1,15 +1,16 @@
 #include "map.h"
 #include "munit.h"
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
-#define UNUSED_TEST_ARGS \
-  (void)params;          \
+#define UNUSED_TEST_ARGS                                                       \
+  (void)params;                                                                \
   (void)data
 
 // --- Custom Callbacks for String Keys ---
 
-// Context isn't strictly needed for basic string hashing, but we must match the signature
+// Context isn't strictly needed for basic string hashing, but we must match the
+// signature
 static uint64_t string_hash_func(const void *key, void *ctx) {
   (void)ctx;
   const char *str = *(const char **)key; // Key is a pointer to a char*
@@ -33,13 +34,16 @@ static void sum_values_func(const void *key, void *value, void *ctx) {
 
 // --- Test Cases ---
 
-static MunitResult test_lifecycle_and_defaults(const MunitParameter params[], void *data) {
+static MunitResult test_lifecycle_and_defaults(const MunitParameter params[],
+                                               void *data) {
   UNUSED_TEST_ARGS;
 
-  // 1. Create a map with int keys and float values, using default raw-byte hashing
-  MapResult res = map_create(8, sizeof(int), sizeof(float), NULL, NULL, NULL, NULL);
+  // 1. Create a map with int keys and float values, using default raw-byte
+  // hashing
+  MapResult res =
+      map_create(8, sizeof(int), sizeof(float), NULL, NULL, NULL, NULL);
   munit_assert_false(res.is_error);
-  
+
   Map *m = res.as.value;
   munit_assert_not_null(m);
   munit_assert_true(map_empty(m));
@@ -56,19 +60,20 @@ static MunitResult test_lifecycle_and_defaults(const MunitParameter params[], vo
   munit_assert_true(map_contains(m, &k1));
   MapValueResult get_res = map_get(m, &k1);
   munit_assert_false(get_res.is_error);
-  munit_assert_float(*(float*)get_res.as.value, ==, 3.14f);
+  munit_assert_float(*(float *)get_res.as.value, ==, 3.14f);
 
   map_free(&m);
   munit_assert_null(m);
   return MUNIT_OK;
 }
 
-static MunitResult test_custom_string_keys(const MunitParameter params[], void *data) {
+static MunitResult test_custom_string_keys(const MunitParameter params[],
+                                           void *data) {
   UNUSED_TEST_ARGS;
 
   // 1. Create a map with char* keys and int values
-  MapResult res = map_create(16, sizeof(char*), sizeof(int), 
-                             string_hash_func, string_eq_func, NULL, NULL);
+  MapResult res = map_create(16, sizeof(char *), sizeof(int), string_hash_func,
+                             string_eq_func, NULL, NULL);
   munit_assert_false(res.is_error);
   Map *m = res.as.value;
 
@@ -85,16 +90,18 @@ static MunitResult test_custom_string_keys(const MunitParameter params[], void *
 
   MapValueResult get_res = map_get(m, &k2);
   munit_assert_false(get_res.is_error);
-  munit_assert_int(*(int*)get_res.as.value, ==, 999);
+  munit_assert_int(*(int *)get_res.as.value, ==, 999);
 
   map_free(&m);
   return MUNIT_OK;
 }
 
-static MunitResult test_removals_and_tombstones(const MunitParameter params[], void *data) {
+static MunitResult test_removals_and_tombstones(const MunitParameter params[],
+                                                void *data) {
   UNUSED_TEST_ARGS;
 
-  MapResult res = map_create(8, sizeof(int), sizeof(int), NULL, NULL, NULL, NULL);
+  MapResult res =
+      map_create(8, sizeof(int), sizeof(int), NULL, NULL, NULL, NULL);
   Map *m = res.as.value;
 
   int k1 = 1, k2 = 2;
@@ -120,10 +127,12 @@ static MunitResult test_removals_and_tombstones(const MunitParameter params[], v
   return MUNIT_OK;
 }
 
-static MunitResult test_iteration_and_extraction(const MunitParameter params[], void *data) {
+static MunitResult test_iteration_and_extraction(const MunitParameter params[],
+                                                 void *data) {
   UNUSED_TEST_ARGS;
 
-  MapResult res = map_create(16, sizeof(int), sizeof(int), NULL, NULL, NULL, NULL);
+  MapResult res =
+      map_create(16, sizeof(int), sizeof(int), NULL, NULL, NULL, NULL);
   Map *m = res.as.value;
 
   // Insert 3 pairs
@@ -142,7 +151,7 @@ static MunitResult test_iteration_and_extraction(const MunitParameter params[], 
   munit_assert_false(keys_res.is_error);
   MapArray *keys_arr = keys_res.as.value;
   munit_assert_size(keys_arr->length, ==, 3);
-  
+
   MapArrayResult vals_res = map_values(m, NULL);
   munit_assert_false(vals_res.is_error);
   MapArray *vals_arr = vals_res.as.value;
@@ -159,21 +168,24 @@ static MunitResult test_iteration_and_extraction(const MunitParameter params[], 
 // --- Munit Suite Registration ---
 
 static MunitTest test_suite_tests[] = {
-  { (char*) "/lifecycle_and_defaults", test_lifecycle_and_defaults, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char*) "/custom_string_keys", test_custom_string_keys, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char*) "/removals_and_tombstones", test_removals_and_tombstones, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char*) "/iteration_and_extraction", test_iteration_and_extraction, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL } 
-};
+    {(char *)"/lifecycle_and_defaults", test_lifecycle_and_defaults, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/custom_string_keys", test_custom_string_keys, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/removals_and_tombstones", test_removals_and_tombstones, NULL,
+     NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/iteration_and_extraction", test_iteration_and_extraction, NULL,
+     NULL, MUNIT_TEST_OPTION_NONE, NULL},
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}};
 
 static const MunitSuite test_suite = {
-  (char*) "/map",         // Prefix for all test names
-  test_suite_tests,       // Array of tests
-  NULL,                   // Array of suites (sub-suites)
-  1,                      // Iterations 
-  MUNIT_SUITE_OPTION_NONE // Options
+    (char *)"/map",         // Prefix for all test names
+    test_suite_tests,       // Array of tests
+    NULL,                   // Array of suites (sub-suites)
+    1,                      // Iterations
+    MUNIT_SUITE_OPTION_NONE // Options
 };
 
-int main(int argc, char* argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
+int main(int argc, char *argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
   return munit_suite_main(&test_suite, NULL, argc, argv);
 }

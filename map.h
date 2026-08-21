@@ -6,10 +6,10 @@
  * modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -23,9 +23,9 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -56,7 +56,8 @@ typedef enum {
   MAP_ERR_BOUNDS,
   MAP_ERR_NULL_PTR,
   MAP_ERR_NOT_FOUND,
-  MAP_ERR_FULL // Hash maps shouldn't hit this if they auto-grow, but safe to have
+  MAP_ERR_FULL // Hash maps shouldn't hit this if they auto-grow, but safe to
+               // have
 } MapError;
 
 // Struct of Arrays (SoA) layout with a Flexible Array Member
@@ -65,18 +66,19 @@ typedef struct Map {
   size_t _capacity; // MUST always be a power of 2
   size_t key_size;
   size_t value_size;
-  
+
   Allocator *allocator;
-  
+
   // Type-agnostic hashing and equality callbacks
   uint64_t (*hash_func)(const void *key, void *ctx);
   bool (*eq_func)(const void *key_a, const void *key_b, void *ctx);
-  void *ctx; 
+  void *ctx;
 
   // The FAM stores the contiguous bytes for parallel arrays:
-  // [ uint64_t hashes... | padding | uint8_t keys... | padding | uint8_t values... ]
-  // MSB of the hash will be used to indicate Occupied (1) or Empty/Tombstone (0)
-  uint8_t data[]; 
+  // [ uint64_t hashes... | padding | uint8_t keys... | padding | uint8_t
+  // values... ] MSB of the hash will be used to indicate Occupied (1) or
+  // Empty/Tombstone (0)
+  uint8_t data[];
 } Map;
 
 // A decoupled array struct specifically for returning extracted keys/values
@@ -88,22 +90,43 @@ typedef struct MapArray {
 } MapArray;
 
 // Tagged Unions
-typedef struct { union { Map *value; MapError error; } as; uint8_t is_error; } MapResult;
-typedef struct { union { void *value; MapError error; } as; uint8_t is_error; } MapValueResult;
-typedef struct { union { MapArray *value; MapError error; } as; uint8_t is_error; } MapArrayResult;
+typedef struct {
+  union {
+    Map *value;
+    MapError error;
+  } as;
+  uint8_t is_error;
+} MapResult;
+typedef struct {
+  union {
+    void *value;
+    MapError error;
+  } as;
+  uint8_t is_error;
+} MapValueResult;
+typedef struct {
+  union {
+    MapArray *value;
+    MapError error;
+  } as;
+  uint8_t is_error;
+} MapArrayResult;
 
 /* ==========================================================================
  * INTERNAL ALLOCATOR WRAPPERS
  * ========================================================================== */
 
 static inline void *map_internal_malloc(Allocator *alloc, size_t size) {
-  if (alloc && alloc->malloc) return alloc->malloc(size, alloc->ctx);
+  if (alloc && alloc->malloc)
+    return alloc->malloc(size, alloc->ctx);
   return malloc(size);
 }
 
 static inline void map_internal_free(Allocator *alloc, void *ptr) {
-  if (alloc && alloc->free) alloc->free(ptr, alloc->ctx);
-  else free(ptr);
+  if (alloc && alloc->free)
+    alloc->free(ptr, alloc->ctx);
+  else
+    free(ptr);
 }
 
 /* ==========================================================================
@@ -112,7 +135,9 @@ static inline void map_internal_free(Allocator *alloc, void *ptr) {
 
 static inline size_t map_len(const Map *m) { return m ? m->_length : 0; }
 static inline size_t map_cap(const Map *m) { return m ? m->_capacity : 0; }
-static inline bool map_empty(const Map *m) { return m ? m->_length == 0 : true; }
+static inline bool map_empty(const Map *m) {
+  return m ? m->_length == 0 : true;
+}
 
 /* ==========================================================================
  * DEFAULT HASHING & EQUALITY
@@ -141,7 +166,8 @@ static inline uint64_t map_hash_fnv1a(const void *key, size_t len) {
 
 /**
  * Creates a flat-array open-addressing hash map.
- * @param capacity Initial capacity (will automatically be rounded up to the nearest power of 2).
+ * @param capacity Initial capacity (will automatically be rounded up to the
+ * nearest power of 2).
  * @param key_size Size of the key type in bytes.
  * @param value_size Size of the value type in bytes.
  * @param hash_func Pointer to the hashing function.
@@ -152,7 +178,8 @@ static inline uint64_t map_hash_fnv1a(const void *key, size_t len) {
  */
 MapResult map_create(size_t capacity, size_t key_size, size_t value_size,
                      uint64_t (*hash_func)(const void *key, void *ctx),
-                     bool (*eq_func)(const void *key_a, const void *key_b, void *ctx),
+                     bool (*eq_func)(const void *key_a, const void *key_b,
+                                     void *ctx),
                      void *ctx, Allocator *alloc);
 
 /**
@@ -167,8 +194,8 @@ void map_free(Map **m);
 
 /**
  * Inserts or updates a key-value pair.
- * Copies the key and value into the map's memory block via memcpy. 
- * WARNING: May trigger an automatic capacity growth and complete rehash, 
+ * Copies the key and value into the map's memory block via memcpy.
+ * WARNING: May trigger an automatic capacity growth and complete rehash,
  * invalidating any pointers previously returned by map_get.
  * @param m Map** Double pointer to the destination map.
  * @param key const void* Pointer to the key to insert/update.
@@ -181,8 +208,10 @@ MapError map_set(Map **m, const void *key, const void *value);
  * Removes a key-value pair using a tombstone.
  * @param m Map** Double pointer to the map.
  * @param key const void* Pointer to the key to remove.
- * @param out_value void* Optional pointer to copy the removed value into before deletion.
- * @return MapError MAP_OK if removed, MAP_ERR_NOT_FOUND if the key wasn't in the map.
+ * @param out_value void* Optional pointer to copy the removed value into before
+ * deletion.
+ * @return MapError MAP_OK if removed, MAP_ERR_NOT_FOUND if the key wasn't in
+ * the map.
  */
 MapError map_remove(Map **m, const void *key, void *out_value);
 
@@ -192,8 +221,8 @@ MapError map_remove(Map **m, const void *key, void *out_value);
 
 /**
  * Retrieves a pointer directly to the value in the map's contiguous memory.
- * WARNING: The returned pointer is strictly temporary. Any call to map_set 
- * may trigger a rehash, moving all data to a new memory block and 
+ * WARNING: The returned pointer is strictly temporary. Any call to map_set
+ * may trigger a rehash, moving all data to a new memory block and
  * invalidating this pointer.
  * @param m const Map* Source map.
  * @param key const void* Pointer to the key to look up.
@@ -216,12 +245,13 @@ bool map_contains(const Map *m, const void *key);
 /**
  * Iterates over every valid key-value pair in the map.
  * @param m Map* Source map.
- * @param func Callback receiving pointers to the key and value, and the user context.
+ * @param func Callback receiving pointers to the key and value, and the user
+ * context.
  * @param ctx void* User-provided context passed directly to the callback.
  * @return MapError MAP_OK on success.
  */
-MapError map_for_each(Map *m, 
-                      void (*func)(const void *key, void *value, void *ctx), 
+MapError map_for_each(Map *m,
+                      void (*func)(const void *key, void *value, void *ctx),
                       void *ctx);
 
 /* ==========================================================================
@@ -230,7 +260,8 @@ MapError map_for_each(Map *m,
 
 /**
  * Extracts all currently active keys into a new contiguous array.
- * The resulting MapArray uses the FAM pattern and must be freed with map_array_free.
+ * The resulting MapArray uses the FAM pattern and must be freed with
+ * map_array_free.
  * @param m const Map* Source map.
  * @param alloc Allocator* Custom memory allocator. Pass NULL for stdlib malloc.
  * @return MapArrayResult A pointer to the populated MapArray or a MapError.
@@ -239,7 +270,8 @@ MapArrayResult map_keys(const Map *m, Allocator *alloc);
 
 /**
  * Extracts all currently active values into a new contiguous array.
- * The resulting MapArray uses the FAM pattern and must be freed with map_array_free.
+ * The resulting MapArray uses the FAM pattern and must be freed with
+ * map_array_free.
  * @param m const Map* Source map.
  * @param alloc Allocator* Custom memory allocator. Pass NULL for stdlib malloc.
  * @return MapArrayResult A pointer to the populated MapArray or a MapError.

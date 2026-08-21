@@ -6,10 +6,10 @@
  * modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -27,12 +27,10 @@
  * ========================================================================== */
 
 // Aligns a size to the nearest 8-byte boundary
-static inline size_t align8(size_t s) {
-  return (s + 7) & ~7;
-}
+static inline size_t align8(size_t s) { return (s + 7) & ~7; }
 
-// By using a union with a uint64_t, we guarantee this header is exactly 
-// 8 bytes long, even on 32-bit systems. This guarantees that the pointer 
+// By using a union with a uint64_t, we guarantee this header is exactly
+// 8 bytes long, even on 32-bit systems. This guarantees that the pointer
 // we hand to the user is always safely 8-byte aligned.
 typedef union {
   size_t size;
@@ -65,8 +63,9 @@ static void arena_free_wrapper(void *ptr, void *ctx) {
 static ArenaRegion *allocate_region(size_t capacity) {
   // Allocate the region header plus the actual memory block
   ArenaRegion *reg = malloc(sizeof(ArenaRegion) + capacity);
-  if (!reg) return NULL;
-  
+  if (!reg)
+    return NULL;
+
   reg->next = NULL;
   reg->capacity = capacity;
   reg->used = 0;
@@ -79,7 +78,7 @@ static ArenaRegion *allocate_region(size_t capacity) {
 
 ArenaResult arena_create(size_t region_size) {
   ArenaResult res = {0};
-  
+
   if (region_size == 0) {
     region_size = 4096; // Sensible default fallback
   }
@@ -113,7 +112,8 @@ ArenaResult arena_create(size_t region_size) {
 }
 
 void arena_free(Arena **a_ptr) {
-  if (!a_ptr || !*a_ptr) return;
+  if (!a_ptr || !*a_ptr)
+    return;
   Arena *a = *a_ptr;
 
   // Walk the linked list and free every region back to the OS
@@ -129,11 +129,13 @@ void arena_free(Arena **a_ptr) {
 }
 
 void arena_reset(Arena *a) {
-  if (!a || !a->head) return;
+  if (!a || !a->head)
+    return;
 
   // To cleanly reset, we free all overflow regions back to the OS,
-  // but we KEEP the original starting region and just reset its 'used' counter to 0.
-  // This avoids a redundant malloc() at the start of the next frame/cycle.
+  // but we KEEP the original starting region and just reset its 'used' counter
+  // to 0. This avoids a redundant malloc() at the start of the next
+  // frame/cycle.
   ArenaRegion *curr = a->head->next;
   while (curr) {
     ArenaRegion *next = curr->next;
@@ -150,7 +152,8 @@ void arena_reset(Arena *a) {
  * ========================================================================== */
 
 void *arena_alloc(Arena *a, size_t size) {
-  if (!a || size == 0) return NULL;
+  if (!a || size == 0)
+    return NULL;
 
   // Total allocation = size requested + 8 byte hidden header
   // We align the entire block to 8 bytes to maintain struct alignment.
@@ -160,12 +163,14 @@ void *arena_alloc(Arena *a, size_t size) {
   if (a->head->used + total_size > a->head->capacity) {
     size_t new_cap = a->default_region_size;
     if (total_size > new_cap) {
-      new_cap = total_size; // Handle massive allocations that exceed the default
+      new_cap =
+          total_size; // Handle massive allocations that exceed the default
     }
-    
+
     ArenaRegion *new_reg = allocate_region(new_cap);
-    if (!new_reg) return NULL;
-    
+    if (!new_reg)
+      return NULL;
+
     new_reg->next = a->head;
     a->head = new_reg;
   }
@@ -178,18 +183,22 @@ void *arena_alloc(Arena *a, size_t size) {
   ArenaHeader *header = (ArenaHeader *)raw_ptr;
   header->size = size;
 
-  // Return the pointer shifted FORWARD by 8 bytes so the user doesn't overwrite the header
+  // Return the pointer shifted FORWARD by 8 bytes so the user doesn't overwrite
+  // the header
   return (void *)(raw_ptr + sizeof(ArenaHeader));
 }
 
 void *arena_realloc(Arena *a, void *ptr, size_t new_size) {
-  if (!a) return NULL;
-  
+  if (!a)
+    return NULL;
+
   // realloc(NULL, size) behaves exactly like malloc(size)
-  if (!ptr) return arena_alloc(a, new_size);
+  if (!ptr)
+    return arena_alloc(a, new_size);
 
   // realloc(ptr, 0) behaves like free(ptr), which in an arena is a no-op
-  if (new_size == 0) return NULL;
+  if (new_size == 0)
+    return NULL;
 
   // Shift the pointer BACKWARD by 8 bytes to read our hidden header
   uint8_t *raw_ptr = (uint8_t *)ptr - sizeof(ArenaHeader);
@@ -202,11 +211,13 @@ void *arena_realloc(Arena *a, void *ptr, size_t new_size) {
     return ptr;
   }
 
-  // Otherwise, we have to allocate a brand new block and copy the old data over.
+  // Otherwise, we have to allocate a brand new block and copy the old data
+  // over.
   void *new_ptr = arena_alloc(a, new_size);
-  if (!new_ptr) return NULL;
+  if (!new_ptr)
+    return NULL;
 
   memcpy(new_ptr, ptr, old_size);
-  
+
   return new_ptr;
 }

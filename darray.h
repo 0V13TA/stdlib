@@ -52,7 +52,6 @@ typedef struct Allocator {
 } Allocator;
 #endif
 
-
 // C99 Stretchy Buffer implementation
 typedef struct Darray {
   size_t _length;

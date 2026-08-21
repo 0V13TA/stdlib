@@ -6,10 +6,10 @@
  * modify, merge, publish, distribute, sublicense, and/or sell copies
  * of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -23,9 +23,9 @@
 #ifndef ARENA_H
 #define ARENA_H
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -47,13 +47,9 @@ typedef struct Allocator {
  * TYPES & STRUCTURES
  * ========================================================================== */
 
-typedef enum {
-  ARENA_OK = 0,
-  ARENA_ERR_ALLOC,
-  ARENA_ERR_NULL_PTR
-} ArenaError;
+typedef enum { ARENA_OK = 0, ARENA_ERR_ALLOC, ARENA_ERR_NULL_PTR } ArenaError;
 
-// A single contiguous block of memory. 
+// A single contiguous block of memory.
 // If the arena fills up, it will allocate a new region and link it here.
 typedef struct ArenaRegion {
   struct ArenaRegion *next;
@@ -65,7 +61,7 @@ typedef struct ArenaRegion {
 typedef struct Arena {
   ArenaRegion *head;          // The current active memory region
   size_t default_region_size; // How big new regions should be
-  Allocator allocator;        // The interface we pass to Darray/Map/String
+  Allocator allocator;        // The interface passed to Darray/Map/String
 } Arena;
 
 // Tagged Union Result
@@ -95,7 +91,7 @@ ArenaResult arena_create(size_t region_size);
 void arena_free(Arena **a);
 
 /**
- * THE TRUE POWER OF ARENAS: Instantly reclaims all memory allocated from this arena.
+ * reclaims all memory allocated from this arena.
  * Instead of freeing back to the OS, it just resets the internal pointers to 0.
  * Future allocations will overwrite the old data.
  * @param a Arena* The arena to reset.

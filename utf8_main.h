@@ -1,15 +1,16 @@
-#include "utf8.h"
 #include "munit.h"
+#include "utf8.h"
 #include <string.h>
 
-#define UNUSED_TEST_ARGS \
-  (void)params;          \
+#define UNUSED_TEST_ARGS                                                       \
+  (void)params;                                                                \
   (void)data
 
 // ---------------------------------------------------------
 // Test 1: Valid Decoding (ASCII to Emoji)
 // ---------------------------------------------------------
-static MunitResult test_utf8_decode_valid(const MunitParameter params[], void *data) {
+static MunitResult test_utf8_decode_valid(const MunitParameter params[],
+                                          void *data) {
   UNUSED_TEST_ARGS;
 
   // 1-byte: 'A'
@@ -46,17 +47,18 @@ static MunitResult test_utf8_decode_valid(const MunitParameter params[], void *d
 // ---------------------------------------------------------
 // Test 2: Invalid Decoding (Security & Bounds)
 // ---------------------------------------------------------
-static MunitResult test_utf8_decode_invalid(const MunitParameter params[], void *data) {
+static MunitResult test_utf8_decode_invalid(const MunitParameter params[],
+                                            void *data) {
   UNUSED_TEST_ARGS;
 
   // Truncated sequence (Starts a 3-byte sequence, but only provides 2 bytes)
-  const char *truncated = "\xE4\xB8"; 
+  const char *truncated = "\xE4\xB8";
   Utf8DecodeResult res_trunc = utf8_decode(truncated, 2);
   munit_assert_true(res_trunc.is_error);
   munit_assert_int(res_trunc.as.error, ==, UTF8_ERR_TRUNCATED);
 
   // Overlong encoding (Encoding the ASCII '/' character using 2 bytes: C0 AF)
-  const char *overlong = "\xC0\xAF"; 
+  const char *overlong = "\xC0\xAF";
   Utf8DecodeResult res_overlong = utf8_decode(overlong, 2);
   munit_assert_true(res_overlong.is_error);
   munit_assert_int(res_overlong.as.error, ==, UTF8_ERR_OVERLONG);
@@ -67,7 +69,8 @@ static MunitResult test_utf8_decode_invalid(const MunitParameter params[], void 
 // ---------------------------------------------------------
 // Test 3: Encoding & Validation
 // ---------------------------------------------------------
-static MunitResult test_utf8_encode_and_count(const MunitParameter params[], void *data) {
+static MunitResult test_utf8_encode_and_count(const MunitParameter params[],
+                                              void *data) {
   UNUSED_TEST_ARGS;
 
   // Encode a Rocket Emoji
@@ -93,18 +96,20 @@ static MunitResult test_utf8_encode_and_count(const MunitParameter params[], voi
 // --- Munit Suite Registration ---
 
 static MunitTest test_suite_tests[] = {
-  { (char *)"/decode_valid", test_utf8_decode_valid, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char *)"/decode_invalid", test_utf8_decode_invalid, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char *)"/encode_and_count", test_utf8_encode_and_count, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
-};
+    {(char *)"/decode_valid", test_utf8_decode_valid, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/decode_invalid", test_utf8_decode_invalid, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/encode_and_count", test_utf8_encode_and_count, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}};
 
 static const MunitSuite test_suite = {
-  (char *)"/utf8",        // Prefix for all test names
-  test_suite_tests,       // Array of tests
-  NULL,                   // Array of suites (sub-suites)
-  1,                      // Iterations 
-  MUNIT_SUITE_OPTION_NONE // Options
+    (char *)"/utf8",        // Prefix for all test names
+    test_suite_tests,       // Array of tests
+    NULL,                   // Array of suites (sub-suites)
+    1,                      // Iterations
+    MUNIT_SUITE_OPTION_NONE // Options
 };
 
 int main(int argc, char *argv[MUNIT_ARRAY_PARAM(argc + 1)]) {

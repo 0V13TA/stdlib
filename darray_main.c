@@ -2,10 +2,9 @@
 #include "munit.h" // Ensure munit.h and munit.c are in your build path
 #include <stddef.h>
 
-#define UNUSED_TEST_ARGS \
-  (void)params;          \
+#define UNUSED_TEST_ARGS                                                       \
+  (void)params;                                                                \
   (void)data
-
 
 // --- Stateless Callbacks using ctx ---
 

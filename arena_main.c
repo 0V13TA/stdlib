@@ -4,8 +4,8 @@
 #include "munit.h"
 #include <stdio.h>
 
-#define UNUSED_TEST_ARGS \
-  (void)params;          \
+#define UNUSED_TEST_ARGS                                                       \
+  (void)params;                                                                \
   (void)data
 
 // ---------------------------------------------------------
@@ -18,7 +18,7 @@ static MunitResult test_arena_basic(const MunitParameter params[], void *data) {
   ArenaResult res = arena_create(1024);
   munit_assert_false(res.is_error);
   Arena *a = res.as.value;
-  
+
   munit_assert_not_null(a);
   munit_assert_not_null(a->head);
   munit_assert_size(a->head->capacity, >=, 1024);
@@ -43,7 +43,8 @@ static MunitResult test_arena_basic(const MunitParameter params[], void *data) {
 // ---------------------------------------------------------
 // Test 2: Arena + Dynamic Array Integration
 // ---------------------------------------------------------
-static MunitResult test_arena_darray(const MunitParameter params[], void *data) {
+static MunitResult test_arena_darray(const MunitParameter params[],
+                                     void *data) {
   UNUSED_TEST_ARGS;
 
   Arena *a = arena_create(4096).as.value;
@@ -65,8 +66,8 @@ static MunitResult test_arena_darray(const MunitParameter params[], void *data) 
   munit_assert_false(v_res.is_error);
   munit_assert_int(*(int *)v_res.as.value, ==, 50);
 
-  // darray_free routes to arena_free (which does nothing for individual pointers),
-  // but it safely nullifies the 'arr' double pointer.
+  // darray_free routes to arena_free (which does nothing for individual
+  // pointers), but it safely nullifies the 'arr' double pointer.
   darray_free(&arr);
   munit_assert_null(arr);
 
@@ -83,8 +84,8 @@ static MunitResult test_arena_map(const MunitParameter params[], void *data) {
   Arena *a = arena_create(4096).as.value;
 
   // Pass the Arena's allocator interface into Map!
-  MapResult m_res = map_create(8, sizeof(int), sizeof(int), 
-                               NULL, NULL, NULL, &a->allocator);
+  MapResult m_res =
+      map_create(8, sizeof(int), sizeof(int), NULL, NULL, NULL, &a->allocator);
   munit_assert_false(m_res.is_error);
   Map *m = m_res.as.value;
 
@@ -110,18 +111,20 @@ static MunitResult test_arena_map(const MunitParameter params[], void *data) {
 // --- Munit Suite Registration ---
 
 static MunitTest test_suite_tests[] = {
-  { (char *)"/basic", test_arena_basic, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char *)"/darray_integration", test_arena_darray, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { (char *)"/map_integration", test_arena_map, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL },
-  { NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL }
-};
+    {(char *)"/basic", test_arena_basic, NULL, NULL, MUNIT_TEST_OPTION_NONE,
+     NULL},
+    {(char *)"/darray_integration", test_arena_darray, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {(char *)"/map_integration", test_arena_map, NULL, NULL,
+     MUNIT_TEST_OPTION_NONE, NULL},
+    {NULL, NULL, NULL, NULL, MUNIT_TEST_OPTION_NONE, NULL}};
 
 static const MunitSuite test_suite = {
-  (char *)"/arena",       // Prefix for all test names
-  test_suite_tests,       // Array of tests
-  NULL,                   // Array of suites (sub-suites)
-  1,                      // Iterations 
-  MUNIT_SUITE_OPTION_NONE // Options
+    (char *)"/arena",       // Prefix for all test names
+    test_suite_tests,       // Array of tests
+    NULL,                   // Array of suites (sub-suites)
+    1,                      // Iterations
+    MUNIT_SUITE_OPTION_NONE // Options
 };
 
 int main(int argc, char *argv[MUNIT_ARRAY_PARAM(argc + 1)]) {
