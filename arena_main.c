@@ -46,7 +46,6 @@ static MunitResult test_arena_basic(const MunitParameter params[], void *data) {
 static MunitResult test_arena_darray(const MunitParameter params[],
                                      void *data) {
   UNUSED_TEST_ARGS;
-
   Arena *a = arena_create(4096).as.value;
 
   // Pass the Arena's allocator interface into Darray!
@@ -59,12 +58,17 @@ static MunitResult test_arena_darray(const MunitParameter params[],
   for (int i = 0; i < 100; i++) {
     munit_assert_int(darray_append(&arr, &i), ==, DARRAY_OK);
   }
-
   munit_assert_size(darray_len(arr), ==, 100);
 
-  ValueResult v_res = darray_get(arr, 50);
-  munit_assert_false(v_res.is_error);
-  munit_assert_int(*(int *)v_res.as.value, ==, 50);
+  // Test Safe Get
+  int arena_safe_val = 0;
+  munit_assert_int(darray_get(arr, 50, &arena_safe_val), ==, DARRAY_OK);
+  munit_assert_int(arena_safe_val, ==, 50);
+
+  // Test Pointer Get
+  ValueResult get_res = darray_get_ptr(arr, 50);
+  munit_assert_false(get_res.is_error);
+  munit_assert_int(*(int *)get_res.as.value, ==, 50);
 
   // darray_free routes to arena_free (which does nothing for individual
   // pointers), but it safely nullifies the 'arr' double pointer.
@@ -99,7 +103,14 @@ static MunitResult test_arena_map(const MunitParameter params[], void *data) {
   munit_assert_size(map_len(m), ==, 50);
 
   int search_key = 25;
-  MapValueResult get_res = map_get(m, &search_key);
+
+  // Test Safe Get
+  int arena_out_val = 0;
+  munit_assert_int(map_get(m, &search_key, &arena_out_val), ==, MAP_OK);
+  munit_assert_int(arena_out_val, ==, 250);
+
+  // Test Pointer Get
+  MapValueResult get_res = map_get_ptr(m, &search_key);
   munit_assert_false(get_res.is_error);
   munit_assert_int(*(int *)get_res.as.value, ==, 250);
 

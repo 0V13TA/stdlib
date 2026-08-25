@@ -62,7 +62,13 @@ static MunitResult test_additions_and_removals(const MunitParameter params[],
   munit_assert_int(darray_prepend(&arr, &val3), ==,
                    DARRAY_OK); // Arr: [30, 10, 20]
 
-  ValueResult get_res = darray_get(arr, 0);
+  // Test Safe Get
+  int safe_val = 0;
+  munit_assert_int(darray_get(arr, 0, &safe_val), ==, DARRAY_OK);
+  munit_assert_int(safe_val, ==, 30);
+
+  // Test Pointer Get
+  ValueResult get_res = darray_get_ptr(arr, 0);
   munit_assert_false(get_res.is_error);
   munit_assert_int(*(int *)get_res.as.value, ==, 30);
 
@@ -98,10 +104,11 @@ static MunitResult test_iteration_and_mapping(const MunitParameter params[],
   int map_mult = 10;
   DarrayResult map_res = darray_map(arr, test_map_func, &map_mult, NULL);
   munit_assert_false(map_res.is_error);
-
   Darray *mapped_arr = map_res.as.value;
-  ValueResult get_res = darray_get(mapped_arr, 2);
-  munit_assert_int(*(int *)get_res.as.value, ==, 40); // 4 * 10
+
+  int mapped_val = 0;
+  munit_assert_int(darray_get(mapped_arr, 2, &mapped_val), ==, DARRAY_OK);
+  munit_assert_int(mapped_val, ==, 40); // 4 * 10
 
   darray_free(&arr);
   darray_free(&mapped_arr);
@@ -116,13 +123,20 @@ static MunitResult test_slices(const MunitParameter params[], void *data) {
   for (int i = 0; i < 10; i++)
     darray_append(&arr, &i);
 
-  // Slice elements 2 through 6 (inclusive start, exclusive end for traditional
-  // slicing, or inclusive as documented)
+  // Slice elements 2 through 6
   DarraySliceResult slice_res = darray_slice(arr, 2, 6);
   munit_assert_false(slice_res.is_error);
-
   DarraySlice slice = slice_res.as.value;
   munit_assert_size(slice._length, ==, 5); // 2, 3, 4, 5, 6
+
+  // Test Slice Gets
+  int slice_val = 0;
+  munit_assert_int(darray_slice_get(&slice, 1, &slice_val), ==, DARRAY_OK);
+  munit_assert_int(slice_val, ==, 3);
+
+  ValueResult slice_ptr_res = darray_slice_get_ptr(&slice, 1);
+  munit_assert_false(slice_ptr_res.is_error);
+  munit_assert_int(*(int *)slice_ptr_res.as.value, ==, 3);
 
   // Concat Slice to Array
   DarrayResult concat_res = darray_concat_slice(arr, &slice, NULL);

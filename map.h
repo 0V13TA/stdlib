@@ -220,15 +220,23 @@ MapError map_remove(Map **m, const void *key, void *out_value);
  * ========================================================================== */
 
 /**
+ * Safely retrieves a value by copying it into the provided out_value pointer.
+ * @param m const Map* Source map.
+ * @param key const void* Pointer to the key to look up.
+ * @param out_value void* Pointer to destination memory to copy the value into.
+ * @return MapError MAP_OK on success, or MAP_ERR_NOT_FOUND.
+ */
+MapError map_get(const Map *m, const void *key, void *out_value);
+
+/**
  * Retrieves a pointer directly to the value in the map's contiguous memory.
  * WARNING: The returned pointer is strictly temporary. Any call to map_set
- * may trigger a rehash, moving all data to a new memory block and
- * invalidating this pointer.
+ * may trigger a rehash, invalidating this pointer.
  * @param m const Map* Source map.
  * @param key const void* Pointer to the key to look up.
  * @return MapValueResult A pointer to the stored value, or MAP_ERR_NOT_FOUND.
  */
-MapValueResult map_get(const Map *m, const void *key);
+MapValueResult map_get_ptr(const Map *m, const void *key);
 
 /**
  * Checks if a key exists in the map.

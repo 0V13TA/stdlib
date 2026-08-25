@@ -344,17 +344,22 @@ DarrayError darray_ordered_remove(Darray **arr, size_t index, void *out_value);
  * ========================================================================== */
 
 /**
- * Gets a pointer to the value at a specific index.
- * WARNING: The returned pointer points directly into the array's heap memory.
- * It must NOT be stored long-term. Any operation that adds or removes elements
- * (e.g., append, pop, remove, grow, shrink) may trigger a memory reallocation,
- * which will immediately invalidate this pointer. Always call darray_get right
- * before use.
+ * Gets an element at a specific index by safely copying it to out_value.
+ * @param arr const Darray* Source array.
+ * @param index size_t Zero-based index.
+ * @param out_value void* Pointer to destination memory.
+ * @return DarrayError DARRAY_OK on success; otherwise a DarrayError.
+ */
+DarrayError darray_get(const Darray *arr, size_t index, void *out_value);
+
+/**
+ * Gets a direct pointer to the value at a specific index.
+ * WARNING: The returned pointer is invalidated by any operation that triggers reallocation.
  * @param arr const Darray* Source array.
  * @param index size_t Zero-based index.
  * @return ValueResult A pointer to the element or a DarrayError.
  */
-ValueResult darray_get(const Darray *arr, size_t index);
+ValueResult darray_get_ptr(const Darray *arr, size_t index);
 
 /* ==========================================================================
  * ITERATION & TRANSFORMATION
@@ -487,5 +492,22 @@ DarrayResult darray_slice_concat(const DarraySlice *slice, const Darray *arr,
 DarrayResult darray_slice_concat_slice(const DarraySlice *slice1,
                                        const DarraySlice *slice2,
                                        Allocator *alloc);
+
+/**
+ * Gets an element from a slice by safely copying it to out_value.
+ * @param slice const DarraySlice* Source slice.
+ * @param index size_t Zero-based index.
+ * @param out_value void* Pointer to destination memory.
+ * @return DarrayError DARRAY_OK on success; otherwise a DarrayError.
+ */
+DarrayError darray_slice_get(const DarraySlice *slice, size_t index, void *out_value);
+
+/**
+ * Gets a direct pointer to the value at a specific index within a slice.
+ * @param slice const DarraySlice* Source slice.
+ * @param index size_t Zero-based index.
+ * @return ValueResult A pointer to the element or a DarrayError.
+ */
+ValueResult darray_slice_get_ptr(const DarraySlice *slice, size_t index);
 
 #endif // DARRAY_H

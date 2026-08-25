@@ -280,7 +280,7 @@ MapError map_remove(Map **m_ptr, const void *key, void *out_value) {
  * ACCESS & SEARCH
  * ========================================================================== */
 
-MapValueResult map_get(const Map *m, const void *key) {
+MapValueResult map_get_ptr(const Map *m, const void *key) {
   MapValueResult res = {0};
   if (!m || !key) {
     res.as.error = MAP_ERR_NULL_PTR;
@@ -298,7 +298,6 @@ MapValueResult map_get(const Map *m, const void *key) {
 
   for (size_t i = 0; i < m->_capacity; i++) {
     uint64_t curr_h = hashes[idx];
-
     if (curr_h == MAP_EMPTY) {
       break;
     }
@@ -315,8 +314,20 @@ MapValueResult map_get(const Map *m, const void *key) {
   return res;
 }
 
+MapError map_get(const Map *m, const void *key, void *out_value) {
+  if (!out_value)
+    return MAP_ERR_NULL_PTR;
+
+  MapValueResult res = map_get_ptr(m, key);
+  if (res.is_error)
+    return res.as.error;
+
+  memcpy(out_value, res.as.value, m->value_size);
+  return MAP_OK;
+}
+
 bool map_contains(const Map *m, const void *key) {
-  MapValueResult res = map_get(m, key);
+  MapValueResult res = map_get_ptr(m, key);
   return !res.is_error;
 }
 

@@ -277,7 +277,20 @@ DarrayError darray_fill_func(Darray *arr,
  * ACCESS & SEARCH
  * ========================================================================== */
 
-ValueResult darray_get(const Darray *arr, size_t index) {
+DarrayError darray_get(const Darray *arr, size_t index, void *out_value) {
+  if (!arr || !out_value)
+    return DARRAY_ERR_NULL_PTR;
+
+  if (index >= arr->_length)
+    return DARRAY_ERR_BOUNDS;
+
+  const void *src = arr->data + (index * arr->element_size);
+  memcpy(out_value, src, arr->element_size);
+
+  return DARRAY_OK;
+}
+
+ValueResult darray_get_ptr(const Darray *arr, size_t index) {
   ValueResult res = {0};
 
   if (!arr) {
@@ -669,5 +682,37 @@ DarrayResult darray_slice_concat_slice(const DarraySlice *slice1,
   memcpy(new_arr->data + (slice1->_length * el_size), slice2->data,
          slice2->_length * el_size);
 
+  return res;
+}
+
+DarrayError darray_slice_get(const DarraySlice *slice, size_t index,
+                             void *out_value) {
+  if (!slice || !slice->data || !out_value)
+    return DARRAY_ERR_NULL_PTR;
+
+  if (index >= slice->_length)
+    return DARRAY_ERR_BOUNDS;
+
+  uint8_t *base = (uint8_t *)slice->data;
+  const void *src = base + (index * slice->element_size);
+  memcpy(out_value, src, slice->element_size);
+  return DARRAY_OK;
+}
+
+ValueResult darray_slice_get_ptr(const DarraySlice *slice, size_t index) {
+  ValueResult res = {0};
+  if (!slice || !slice->data) {
+    res.as.error = DARRAY_ERR_NULL_PTR;
+    res.is_error = 1;
+    return res;
+  }
+  if (index >= slice->_length) {
+    res.as.error = DARRAY_ERR_BOUNDS;
+    res.is_error = 1;
+    return res;
+  }
+  uint8_t *base = (uint8_t *)slice->data;
+  res.as.value = (void *)(base + (index * slice->element_size));
+  res.is_error = 0;
   return res;
 }

@@ -58,7 +58,14 @@ static MunitResult test_lifecycle_and_defaults(const MunitParameter params[],
 
   // 3. Retrieve values
   munit_assert_true(map_contains(m, &k1));
-  MapValueResult get_res = map_get(m, &k1);
+
+  // Test Safe Get
+  float out_v1 = 0.0f;
+  munit_assert_int(map_get(m, &k1, &out_v1), ==, MAP_OK);
+  munit_assert_float(out_v1, ==, 3.14f);
+
+  // Test Pointer Get
+  MapValueResult get_res = map_get_ptr(m, &k1);
   munit_assert_false(get_res.is_error);
   munit_assert_float(*(float *)get_res.as.value, ==, 3.14f);
 
@@ -88,7 +95,13 @@ static MunitResult test_custom_string_keys(const MunitParameter params[],
   munit_assert_true(map_contains(m, &k1));
   munit_assert_false(map_contains(m, &k3)); // <--- Pass &k3 safely
 
-  MapValueResult get_res = map_get(m, &k2);
+  // Test Safe Get
+  int out_v2 = 0;
+  munit_assert_int(map_get(m, &k2, &out_v2), ==, MAP_OK);
+  munit_assert_int(out_v2, ==, 999);
+
+  // Test Pointer Get
+  MapValueResult get_res = map_get_ptr(m, &k2);
   munit_assert_false(get_res.is_error);
   munit_assert_int(*(int *)get_res.as.value, ==, 999);
 
