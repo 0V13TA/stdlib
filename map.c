@@ -120,6 +120,7 @@ MapResult map_create(size_t capacity, size_t key_size, size_t value_size,
   }
 
   m->_length = 0;
+  m->_tombstone_count = 0;
   m->_capacity = capacity;
   m->key_size = key_size;
   m->value_size = value_size;
@@ -161,7 +162,7 @@ MapError map_set(Map **m_ptr, const void *key, const void *value) {
   Map *m = *m_ptr;
 
   // Hysteresis: Resize if we hit 75% load factor to maintain fast probing
-  if (m->_length * 4 >= m->_capacity * 3) {
+  if ((m->_length + m->_tombstone_count) * 4 >= m->_capacity * 3) {
     MapResult resize_res =
         map_create(m->_capacity * 2, m->key_size, m->value_size, m->hash_func,
                    m->eq_func, m->ctx, m->allocator);
@@ -263,6 +264,7 @@ MapError map_remove(Map **m_ptr, const void *key, void *out_value) {
 
     if (curr_h == hash && keys_equal(m, key, keys + (idx * m->key_size))) {
       hashes[idx] = MAP_TOMBSTONE; // Mark as deleted
+      m->_tombstone_count++;
       m->_length--;
 
       if (out_value) {

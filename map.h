@@ -63,6 +63,8 @@ typedef enum {
 // Struct of Arrays (SoA) layout with a Flexible Array Member
 typedef struct Map {
   size_t _length;
+  size_t _tombstone_count;
+
   size_t _capacity; // MUST always be a power of 2
   size_t key_size;
   size_t value_size;
