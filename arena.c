@@ -27,11 +27,14 @@
  * ========================================================================== */
 
 // Aligns a size to the nearest 8-byte boundary
-static inline size_t align8(size_t s) { return (s + 7) & ~7; }
+static inline size_t align_size(size_t s) {
+    size_t boundary = sizeof(union max_align);
+    return (s + (boundary - 1)) & ~(boundary - 1);
+}
 
-// By using a union with a uint64_t, we guarantee this header is exactly
+// By using a union with a uint64_t, this guarantee the header is exactly
 // 8 bytes long, even on 32-bit systems. This guarantees that the pointer
-// we hand to the user is always safely 8-byte aligned.
+// handed to the user is always safely 8-byte aligned.
 typedef union {
   size_t size;
   uint64_t _align;
@@ -157,7 +160,7 @@ void *arena_alloc(Arena *a, size_t size) {
 
   // Total allocation = size requested + 8 byte hidden header
   // We align the entire block to 8 bytes to maintain struct alignment.
-  size_t total_size = align8(sizeof(ArenaHeader) + size);
+  size_t total_size = align_size(sizeof(ArenaHeader) + size);
 
   // If the current region is full, allocate a new one and push it to the front
   if (a->head->used + total_size > a->head->capacity) {

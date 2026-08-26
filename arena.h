@@ -47,6 +47,12 @@ typedef struct Allocator {
  * TYPES & STRUCTURES
  * ========================================================================== */
 
+union max_align {
+    long long ll;
+    long double ld;
+    void *p;
+};
+
 typedef enum { ARENA_OK = 0, ARENA_ERR_ALLOC, ARENA_ERR_NULL_PTR } ArenaError;
 
 // A single contiguous block of memory.
